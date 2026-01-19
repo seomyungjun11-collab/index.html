@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Birthday Animation</title>
+<style>
+html, body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  background: black;
+  overflow: hidden;
+  font-family: monospace;
+}
+canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+#text {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ff8de1;
+  font-weight: 700;
+  text-align: center;
+  white-space: pre-line;
+  text-shadow: 0 0 14px rgba(255,140,225,0.6);
+  font-size: 60px;
+}
+</style>
+</head>
+<body>
+
+<canvas id="canvas"></canvas>
+<div id="text">핸드폰 화면을 가로로 돌려봐</div>
+
+<script>
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+let width, height;
+
+function resize() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  width = canvas.width;
+  height = canvas.height;
+}
+window.addEventListener("resize", resize);
+window.addEventListener("orientationchange", resize);
+resize();
+
+/* 해킹 배경 */
+const chars = "HAPPY BIRTHDAY";
+const fontSize = 20;
+let drops = [];
+function resetMatrix() {
+  drops = Array(Math.floor(width / fontSize)).fill(0);
+}
+resetMatrix();
+
+function drawMatrix(){
+  ctx.fillStyle = "rgba(0,0,0,0.15)";
+  ctx.fillRect(0,0,width,height);
+  ctx.fillStyle = "#ff8de1";
+  ctx.font = fontSize+"px monospace";
+  for(let i=0;i<drops.length;i++){
+    const char = chars[Math.floor(Math.random()*chars.length)];
+    ctx.fillText(char,i*fontSize,drops[i]*fontSize);
+    if(drops[i]*fontSize > height && Math.random() > 0.98) drops[i]=0;
+    drops[i]++;
+  }
+  requestAnimationFrame(drawMatrix);
+}
+drawMatrix();
+
+/* 픽셀 글자 */
+const PARTICLE_SIZE = 2;
+let particles = [];
+const textDiv = document.getElementById("text");
+
+/* 폭죽 */
+let fireworks = [];
+function createFireworks(){
+  for(let i=0;i<180;i++){
+    fireworks.push({
+      x: width/2,
+      y: height/2,
+      vx:(Math.random()-0.5)*7,
+      vy:(Math.random()-1.5)*8,
+      alpha:1,
+      color:`hsl(${Math.random()*360},100%,70%)`,
+      size:Math.random()*3+1
+    });
+  }
+}
+function animateFireworks(){
+  fireworks.forEach((f,i)=>{
+    f.x+=f.vx;
+    f.y+=f.vy;
+    f.vy+=0.2;
+    f.alpha-=0.02;
+    ctx.fillStyle=f.color;
+    ctx.globalAlpha=f.alpha;
+    ctx.fillRect(f.x,f.y,f.size,f.size);
+    if(f.alpha<=0) fireworks.splice(i,1);
+  });
+  ctx.globalAlpha=1;
+  if(fireworks.length>0) requestAnimationFrame(animateFireworks);
+}
+
+function createParticles(text){
+  const temp = document.createElement("canvas");
+  const tctx = temp.getContext("2d");
+  temp.width = width;
+  temp.height = height;
+
+  tctx.fillStyle = "white";
+  tctx.font = "80px system-ui";
+  tctx.textAlign = "center";
+  tctx.textBaseline = "middle";
+  tctx.fillText(text, width/2, height/2);
+
+  const data = tctx.getImageData(0,0,width,height).data;
+  const list = [];
+
+  for(let y=0;y<height;y+=4){
+    for(let x=0;x<width;x+=4){
+      if(data[(y*width+x)*4+3] > 128){
+        list.push({
+          x:Math.random()*width,
+          y:Math.random()*height,
+          tx:x,
+          ty:y,
+          speed:0.05+Math.random()*0.05
+        });
+      }
+    }
+  }
+  return list;
+}
+
+function animateParticles(){
+  ctx.clearRect(0,0,width,height);
+  particles.forEach(p=>{
+    p.x += (p.tx - p.x) * p.speed;
+    p.y += (p.ty - p.y) * p.speed;
+    ctx.fillStyle = "#ff8de1";
+    ctx.fillRect(p.x,p.y,PARTICLE_SIZE,PARTICLE_SIZE);
+  });
+  requestAnimationFrame(animateParticles);
+}
+
+/* 최종 메시지 순서 (확정) */
+const finalMessage = [
+  "내가 너를 위해 마술을 써볼게",
+  "오늘은",
+  "너가",
+  "제일 재밌고",
+  "행복해서",
+  "기억이 계속나는",
+  "생일이 되라",
+  "수리수리마수리 얍🪄",
+  "그리고",
+  "다시한번",
+  "생일 축하해",
+  "그리고",
+  "사랑해🤍"
+];
+
+function showFinalMessage(lines, index = 0){
+  if(index >= lines.length){
+    createFireworks();
+    animateFireworks();
+    return;
+  }
+  particles = createParticles(lines[index]);
+  setTimeout(() => showFinalMessage(lines, index + 1), 2600);
+}
+
+/* 시작 */
+function startSequence(){
+  if(window.innerWidth <= window.innerHeight) return;
+  textDiv.style.display = "none";
+  particles = createParticles("김태연🤍");
+  animateParticles();
+  setTimeout(()=>showFinalMessage(finalMessage),3000);
+}
+window.addEventListener("resize", startSequence);
+window.addEventListener("orientationchange", startSequence);
+</script>
+
+</body>
+</html>
